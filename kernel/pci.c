@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "types.h"
 union __attribute__((packed)) pcie_config_hdr {
 	struct __attribute__((packed)) type0 {
@@ -61,3 +63,8 @@ union __attribute__((packed)) pcie_config_hdr {
 		uint32 bridge_control : 16;
 	}t1;
 };
+
+void
+pcie_init() {
+	assert(sizeof(union pcie_config_hdr) == 64);	
+}
