@@ -1,6 +1,11 @@
 #include <assert.h>
 
 #include "types.h"
+#include "riscv.h"
+#include "memlayout.h"
+#include "defs.h"
+#include "param.h"
+#include "spinlock.h"
 union __attribute__((packed)) pcie_config_hdr {
 	struct __attribute__((packed)) type0 {
 		uint32 vendor_id : 16;
@@ -67,4 +72,14 @@ union __attribute__((packed)) pcie_config_hdr {
 void
 pcie_init() {
 	assert(sizeof(union pcie_config_hdr) == 64);	
+	volatile union pcie_config_hdr* dev = (void*)PCIE_ECAM_BASE;
+	while ((uint64)dev < PCIE_ECAM_BASE + PCIE_ECAM_SIZE) {
+		if(dev->t0.vendor_id == 0xffff) {
+			dev++;
+			continue;
+		}
+		printf("Vendor: %x, Device: %x\n", dev->t0.vendor_id, dev->t0.device_id);
+		dev = (void*)dev + 256;
+	}
+	
 }
