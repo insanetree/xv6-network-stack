@@ -37,6 +37,10 @@
 #define PCIE_ECAM_BASE 0x30000000L
 #define PCIE_ECAM_SIZE 0x10000000L
 
+// e1000
+#define E1000_BASE 0x40000000
+#define E1000_SIZE 0x020000
+
 // the kernel expects there to be RAM
 // for use by the kernel and user pages
 // from physical address 0x80000000 to PHYSTOP.

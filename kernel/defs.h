@@ -1,5 +1,6 @@
 struct buf;
 struct context;
+union pcie_config_hdr;
 struct file;
 struct inode;
 struct pipe;
@@ -21,6 +22,9 @@ void            bunpin(struct buf*);
 void            consoleinit(void);
 void            consoleintr(int);
 void            consputc(int);
+
+// e1000.c
+void            e1000_init(union pcie_config_hdr*);
 
 // exec.c
 int             exec(char*, char**);

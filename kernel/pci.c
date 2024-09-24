@@ -12,7 +12,7 @@
 void
 pcie_init() {
 	assert(sizeof(union pcie_config_hdr) == 64);	
-	volatile union pcie_config_hdr* dev = (void*)PCIE_ECAM_BASE;
+	union pcie_config_hdr* dev = (void*)PCIE_ECAM_BASE;
 	assert(sizeof(dev->t0) == sizeof(dev->t1));
 	while ((uint64)dev < PCIE_ECAM_BASE + PCIE_ECAM_SIZE) {
 		if(dev->t0.vendor_id == 0xffff) {
@@ -20,7 +20,9 @@ pcie_init() {
 			continue;
 		}
 		printf("Vendor: %x, Device: %x\n", dev->t0.vendor_id, dev->t0.device_id);
+		if(dev->t0.vendor_id == 0x8086 && dev->t0.device_id == 0x100e) {
+			e1000_init(dev);
+		}
 		dev = (void*)dev + 4096;
 	}
-	
 }

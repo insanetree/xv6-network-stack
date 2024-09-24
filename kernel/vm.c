@@ -36,6 +36,9 @@ kvmmake(void)
   // PCIE_ECAM
   kvmmap(kpgtbl, PCIE_ECAM_BASE, PCIE_ECAM_BASE, PCIE_ECAM_SIZE, PTE_R | PTE_W);
 
+  // E1000 regs
+  kvmmap(kpgtbl, E1000_BASE, E1000_BASE, E1000_SIZE, PTE_R | PTE_W);
+
   // map kernel text executable and read-only.
   kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
 
