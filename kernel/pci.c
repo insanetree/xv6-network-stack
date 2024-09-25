@@ -12,7 +12,7 @@
 void
 pcie_init() {
 	assert(sizeof(union pcie_config_hdr) == 64);	
-	union pcie_config_hdr* dev = (void*)PCIE_ECAM_BASE;
+	volatile union pcie_config_hdr* dev = (void*)PCIE_ECAM_BASE;
 	assert(sizeof(dev->t0) == sizeof(dev->t1));
 	while ((uint64)dev < PCIE_ECAM_BASE + PCIE_ECAM_SIZE) {
 		if(dev->t0.vendor_id == 0xffff) {

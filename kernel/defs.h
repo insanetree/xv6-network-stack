@@ -24,7 +24,7 @@ void            consoleintr(int);
 void            consputc(int);
 
 // e1000.c
-void            e1000_init(union pcie_config_hdr*);
+void            e1000_init(volatile union pcie_config_hdr*);
 
 // exec.c
 int             exec(char*, char**);

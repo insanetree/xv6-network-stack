@@ -1,0 +1,7 @@
+#define E1000_PCIE_CMD_IO_ENABLE            0x0001
+#define E1000_PCIE_CMD_MMIO_ENABLE          0x0002
+#define E1000_PCIE_CMD_BUS_MASTERING_ENABLE 0x0004
+
+#define E1000_PCIE_BAR0_64BIT 0x00000004
+
+extern struct spinlock e1000_lock;
