@@ -10,6 +10,8 @@
 
 struct spinlock e1000_lock;
 
+static volatile uint32* e1000_regs = 0;
+
 void
 e1000_init(volatile union pcie_config_hdr* hdr) {
 	initlock(&e1000_lock, "e1000_spinlock");
@@ -20,4 +22,6 @@ e1000_init(volatile union pcie_config_hdr* hdr) {
 	hdr->t0.base_addr_regs[0] = E1000_BASE | E1000_PCIE_BAR0_64BIT;
 	hdr->t0.base_addr_regs[1] = 0;
 	__sync_synchronize();
+
+	e1000_regs = (uint32*) E1000_BASE;
 }
