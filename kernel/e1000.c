@@ -9,11 +9,19 @@
 
 #include "pci.h"
 #include "e1000.h"
+#include "net.h"
 
 struct spinlock e1000_lock;
 
 static volatile uint32* regs = 0;
 static volatile struct e1000_ctrl* ctrl = 0;
+
+static volatile struct e1000_rctl* rctl = 0;
+static volatile uint64*  rdba = 0;
+static volatile uint32* rdlen = 0;
+static volatile uint32*   rdh = 0;
+static volatile uint32*   rdt = 0;
+
 
 static volatile struct e1000_tctl* tctl = 0;
 static volatile uint32* tdbal = 0;
@@ -22,8 +30,13 @@ static volatile uint32* tdlen = 0;
 static volatile uint32* tdh   = 0;
 static volatile uint32* tdt   = 0;
 
+#define RX_RING_SIZE 32
+struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
+struct mbuf rx_mbuf[RX_RING_SIZE];
+
 #define TX_RING_SIZE 32
 struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
+struct mbuf tx_mbuf[TX_RING_SIZE];
 
 void
 e1000_init(volatile union pcie_config_hdr* hdr) {
@@ -50,8 +63,8 @@ e1000_init(volatile union pcie_config_hdr* hdr) {
 	__sync_synchronize();
 
 	// TX init
-	assert(sizeof(struct tx_desc) == 16);
-	assert(sizeof(tx_ring) % 128 == 0);
+	static_assert(sizeof(struct tx_desc) == 16);
+	static_assert(sizeof(tx_ring) % 128 == 0);
 
 	tctl  = (struct e1000_tctl*)&regs[E1000_TCTL];
 	tdbal = &regs[E1000_TDBAL];
@@ -71,9 +84,38 @@ e1000_init(volatile union pcie_config_hdr* hdr) {
 	*tdh   = 0;
 	*tdt   = 0;
 
+	// RX init
+	rctl = (struct e1000_rctl*)&regs[E1000_RCTL];
+	rdba = (uint64*)(&regs[E1000_RDBA]);
+	rdlen = &regs[E1000_RDLEN];
+	rdh = &regs[E1000_RDH];
+	rdt = &regs[E1000_RDT];
+
+	memset(&rx_ring, 0, RX_RING_SIZE * sizeof(struct rx_desc));
+	for(uint i = 0 ; i < RX_RING_SIZE ; i++) {
+		rx_mbuf[i].head = (void*)(rx_mbuf[i].buffer);
+		rx_ring[i].addr = (uint64)rx_mbuf[i].head;
+	}
+	
+	*rdba = (uint64)(&rx_ring);
+	*rdlen = sizeof(rx_ring);
+	*rdh = 0;
+	*rdt = RX_RING_SIZE - 1;
+
+
 	// TX control
+	static_assert(sizeof(*tctl) == sizeof(uint32));
+	memset(tctl, 0, sizeof(*tctl));
 	tctl->en = 1;
 	tctl->psp = 1;
+
+	// RX control
+	static_assert(sizeof(*rctl) == sizeof(uint32));
+	memset(rctl, 0, sizeof(*rctl));	
+	rctl->en = 1;
+	rctl->bam = 1;
+	rctl->secrc = 1;
+
 
 	return;
 }
