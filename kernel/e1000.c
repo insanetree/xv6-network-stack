@@ -24,6 +24,7 @@ static volatile uint32*   rdt = 0;
 
 
 static volatile struct e1000_tctl* tctl = 0;
+static volatile struct e1000_tipg* tipg = 0;
 static volatile uint32* tdbal = 0;
 static volatile uint32* tdbah = 0;
 static volatile uint32* tdlen = 0;
@@ -67,6 +68,7 @@ e1000_init(volatile union pcie_config_hdr* hdr) {
 	static_assert(sizeof(tx_ring) % 128 == 0);
 
 	tctl  = (struct e1000_tctl*)&regs[E1000_TCTL];
+	tipg  = (struct e1000_tipg*)&regs[E1000_TIPG];
 	tdbal = &regs[E1000_TDBAL];
 	tdbah = &regs[E1000_TDBAH];
 	tdlen = &regs[E1000_TDLEN];
@@ -108,6 +110,13 @@ e1000_init(volatile union pcie_config_hdr* hdr) {
 	memset(tctl, 0, sizeof(*tctl));
 	tctl->en = 1;
 	tctl->psp = 1;
+	tctl->ct = 0x10;
+	tctl->cold = 0x40;
+	static_assert(sizeof(*tipg) == sizeof(uint32));
+	memset(tipg, 0, sizeof(*tipg));
+	tipg->ipgt = 10;
+	tipg->ipgr1 = 10;
+	tipg->ipgr2 = 10;
 
 	// RX control
 	static_assert(sizeof(*rctl) == sizeof(uint32));

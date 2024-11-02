@@ -69,6 +69,13 @@ struct __attribute__((packed)) e1000_tctl {
 	uint32 reserved3 : 6; // Reserved, write to 0
 };
 
+struct __attribute__((packed)) e1000_tipg {
+	uint32      ipgt : 10; // IPG Transmit Time
+	uint32     ipgr1 : 10; // IPG Receive Time 1
+	uint32     ipgr2 : 10; // IPG Receive Time 2
+	uint32 reserved0 :  2; // Reserved, write to 0
+};
+
 #define TX_DESC_CMD_EOP  0x01 /* End Of Packet */
 #define TX_DESC_CMD_IFCS 0x02 /* Insert FCS*/
 #define TX_DESC_CMD_IC   0x04 /* Insert Checksum */
