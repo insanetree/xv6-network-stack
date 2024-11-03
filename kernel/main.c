@@ -30,6 +30,7 @@ main()
     virtio_disk_init(); // emulated hard disk
 
     pcie_init();
+    net_stack_init();
 
     userinit();      // first user process
     __sync_synchronize();

@@ -12,6 +12,7 @@ OBJS = \
   $K/spinlock.o \
   $K/string.o \
   $K/main.o \
+  $K/net.o \
   $K/vm.o \
   $K/pci.o \
   $K/proc.o \

@@ -26,56 +26,27 @@
 #define E1000_RA(n)    (0x05400/4 + 2*(n))  /* Receive Address - RW Array */
 
 // E1000 Control Register
-struct __attribute__((packed)) e1000_ctrl {
-	uint32 fd : 1;
-	uint32 reserved0 : 2;
-	uint32 lrst : 1;
-	uint32 reserved1 : 1;
-	uint32 asde : 1;
-	uint32 slu : 1;
-	uint32 ilos : 1;
-	uint32 speed : 2;
-	uint32 reserved2 : 1;
-	uint32 frcspd : 1;
-	uint32 frcdplx : 1;
-	uint32 reserved3 : 5;
-	uint32 sdp0_data : 1;
-	uint32 sdp1_data : 1;
-	uint32 advd3wuc : 1;
-	uint32 en_phy_pwr_mgmt : 1;
-	uint32 sdp0_iodir : 1;
-	uint32 sdp1_iodir : 1;
-	uint32 reserved4 : 2;
-	uint32 rst : 1;
-	uint32 rfce : 1;
-	uint32 tfce : 1;
-	uint32 reserved5 : 1;
-	uint32 vme : 1;
-	uint32 phy_rst : 1;
-};
+#define E1000_CTRL_ASDE 0x00000020 // Auto-Speed Detection Enable
+#define E1000_CTRL_SLU  0x00000040 // Set Link Up
+#define E1000_CTRL_RST  0x04000000 // Device Reset
 
 // E1000 Transmit Control Register
-struct __attribute__((packed)) e1000_tctl {
-	uint32 reserved0 : 1; // Reserver, write to 0
-	uint32        en : 1; // Transmit Enable
-	uint32 reserved1 : 1; // Reserved, write to 0
-	uint32       psp : 1; // Pad Short Packets
-	uint32        ct : 8; // Collision Threshold
-	uint32     cold : 10; // Collision Distance
-	uint32    swxoff : 1; // Software XOFF Transmission
-	uint32 reserved2 : 1; // Reserved, write to 0
-	uint32      rtcl : 1; // Retransmit on Late Collision
-	uint32      nrtu : 1; // No Retransmit on Underrun
-	uint32 reserved3 : 6; // Reserved, write to 0
-};
+#define E1000_TCTL_EN         0x00000002 // Transmit Enable
+#define E1000_TCTL_PSP        0x00000008 // Pad Short Packets
+#define E1000_TCTL_CT_VAL           0x10 // Collision Threshold
+#define E1000_TCTL_CT_SHIFT            4
+#define E1000_TCTL_COLD_VAL         0x40 // Collision Distance
+#define E1000_TCTL_COLD_SHIFT         12
 
-struct __attribute__((packed)) e1000_tipg {
-	uint32      ipgt : 10; // IPG Transmit Time
-	uint32     ipgr1 : 10; // IPG Receive Time 1
-	uint32     ipgr2 : 10; // IPG Receive Time 2
-	uint32 reserved0 :  2; // Reserved, write to 0
-};
+// E1000 Transmit Inter Packet Gap
+#define E1000_TIPG_IPGT_VAL    0x0a // IPG Transmit Time
+#define E1000_TIPG_IPGT_SHIFT     0
+#define E1000_TIPG_IPGR1_VAL   0x0a // IPG Receive Time 1
+#define E1000_TIPG_IPGR1_SHIFT   10
+#define E1000_TIPG_IPGR2_VAL   0x0a // IPG Receive Time 2
+#define E1000_TIPG_IPGR2_SHIFT   20
 
+// Transmit Descriptor
 #define TX_DESC_CMD_EOP  0x01 /* End Of Packet */
 #define TX_DESC_CMD_IFCS 0x02 /* Insert FCS*/
 #define TX_DESC_CMD_IC   0x04 /* Insert Checksum */
@@ -100,6 +71,9 @@ struct __attribute__((packed)) tx_desc {
 };
 
 // E1000 Receive Control Register
+#define E1000_RCTL_EN    0x00000002 // Receiver Enable
+#define E1000_RCTL_BAM   0x00008000 // Broadcast Accept Mode
+#define E1000_RCTL_SECRC 0x04000000 // Stript Ethernet CRC from incoming packets
 struct __attribute__((packed)) e1000_rctl {
 	uint8 reserved0 : 1; // Reserved, write to 0
 	uint8        en : 1; // Receiver Enable
@@ -126,6 +100,7 @@ struct __attribute__((packed)) e1000_rctl {
 	uint8 reserved5 : 5; // Reserved, write to 0
 };
 
+// Receive Descriptor
 #define RX_DESC_STATUS_PIF   0x80
 #define RX_DESC_STATUS_IPCS  0x40
 #define RX_DESC_STATUS_TCPCS 0x20
@@ -140,6 +115,17 @@ struct __attribute__((packed)) rx_desc {
 	uint8    status;
 	uint8    errors;
 	uint16  special;
+};
+
+#define E1000_RA_MAC(val, pos) ((val >> (pos * 8)) & 0xff)
+#define E1000_RA_AS_MASK       0x0003000000000000UL
+#define E1000_RA_AS_SHIFT                      48
+#define E1000_RA_AV            0x8000000000000000UL
+struct __attribute__((packed)) e1000_ra {
+	uint8        mac[6];   // MAC address
+	uint8         as :  2; // Address Select
+	uint16 reserved0 : 13; // Reserved, write to 0
+	uint8         av :  1; // Address Valid
 };
 
 extern struct spinlock e1000_lock;

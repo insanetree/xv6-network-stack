@@ -25,6 +25,7 @@ void            consputc(int);
 
 // e1000.c
 void            e1000_init(volatile union pcie_config_hdr*);
+int             get_mac_addr(uint8 dest[]);
 
 // exec.c
 int             exec(char*, char**);
@@ -57,6 +58,9 @@ int             readi(struct inode*, int, uint64, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
+
+// net.c
+void            net_stack_init();
 
 // ramdisk.c
 void            ramdiskinit(void);
