@@ -16,6 +16,10 @@ struct spinlock e1000_lock;
 static volatile uint32 *regs = 0;
 static volatile uint32 *ctrl = 0;
 
+static volatile uint32 *icr = 0;
+static volatile uint32 *ims = 0;
+static volatile uint32 *imc = 0;
+
 static volatile uint32 *rctl = 0;
 static volatile uint64 *rdba = 0;
 static volatile uint32 *rdlen = 0;
@@ -31,10 +35,14 @@ static volatile uint32 *tdh = 0;
 static volatile uint32 *tdt = 0;
 
 #define RX_RING_SIZE 32
+struct spinlock e1000_rx_lock;
 struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
 struct mbuf rx_mbuf[RX_RING_SIZE];
 
 #define TX_RING_SIZE 32
+struct spinlock e1000_tx_lock;
+static volatile uint32 tx_ptr = 0;
+static volatile uint32 tx_size = TX_RING_SIZE;
 struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
 struct mbuf tx_mbuf[TX_RING_SIZE];
 
@@ -45,6 +53,8 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	printf("Configuring e1000 network card\n");
 
 	initlock(&e1000_lock, "e1000_spinlock");
+	initlock(&e1000_tx_lock, "e1000_transmit_spinlock");
+	initlock(&e1000_rx_lock, "e1000_receive_spinlock");
 	hdr->t0.cmd |= E1000_PCIE_CMD_IO_ENABLE |
 				   E1000_PCIE_CMD_MMIO_ENABLE |
 				   E1000_PCIE_CMD_BUS_MASTERING_ENABLE;
@@ -54,8 +64,16 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	__sync_synchronize();
 
 	regs = (uint32 *)E1000_BASE;
-	ctrl = &regs[E1000_CTRL];
 
+	// Interrupt Config
+	icr = &regs[E1000_ICR];
+	ims = &regs[E1000_IMS];
+	imc = &regs[E1000_IMC];
+
+	e1000_intr_en(0);
+
+	// General Config
+	ctrl = &regs[E1000_CTRL];
 	*ctrl |= E1000_CTRL_RST;
 	__sync_synchronize();
 	*ctrl = E1000_CTRL_ASDE | E1000_CTRL_SLU;
@@ -73,8 +91,7 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	tdt = &regs[E1000_TDT];
 
 	memset(&tx_ring, 0, TX_RING_SIZE * sizeof(struct tx_desc));
-	for (uint32 i = 0; i < TX_RING_SIZE; i++)
-	{
+	for (uint32 i = 0; i < TX_RING_SIZE; i++) {
 		tx_ring[i].status |= TX_DESC_STATUS_DD;
 	}
 
@@ -92,8 +109,7 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	rdt = &regs[E1000_RDT];
 
 	memset(&rx_ring, 0, RX_RING_SIZE * sizeof(struct rx_desc));
-	for (uint i = 0; i < RX_RING_SIZE; i++)
-	{
+	for (uint i = 0; i < RX_RING_SIZE; i++) {
 		rx_mbuf[i].head = (void *)(rx_mbuf[i].buffer);
 		rx_ring[i].addr = (uint64)rx_mbuf[i].head;
 	}
@@ -108,16 +124,25 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	*tipg = (E1000_TIPG_IPGT_VAL << E1000_TIPG_IPGT_SHIFT) | (E1000_TIPG_IPGR1_VAL << E1000_TIPG_IPGR1_SHIFT) | (E1000_TIPG_IPGR2_VAL << E1000_TIPG_IPGR2_SHIFT);
 
 	// RX control
-	*rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SECRC;
+	*rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_BSIZE_2048 | E1000_RCTL_SECRC;
 
 	return;
 }
 
-int get_mac_addr(uint8 dest[])
+void
+e1000_intr_en(uint32 intr_mask)
+{
+	*imc = 0xffffffff;
+	__sync_synchronize();
+	*ims = intr_mask;
+	return;
+}
+
+int
+get_mac_addr(uint8 dest[])
 {
 	static_assert(sizeof(struct e1000_ra) == sizeof(uint64));
-	for (uint8 i = 0; i < 16; i++)
-	{
+	for (uint8 i = 0; i < 16; i++) {
 		ra = (uint64*)&regs[E1000_RA(i)];
 		uint64 valid = *ra & E1000_RA_AV;
 		uint64 select = (*ra & E1000_RA_AS_MASK) >> E1000_RA_AS_SHIFT;
@@ -133,4 +158,40 @@ int get_mac_addr(uint8 dest[])
 		}
 	}
 	return -1;
+}
+
+void
+e1000_get_tx_buf(struct mbuf** tx_data)
+{
+	acquire(&e1000_tx_lock);
+
+	while(!(tx_ring[tx_ptr].status & TX_DESC_STATUS_DD)); // Busy wait for descriptor done
+	tx_ring[tx_ptr].status = 0; // Clear Status bits to reserve this descriptor
+	memset(tx_mbuf[tx_ptr].buffer, 0, MBUF_SIZE);
+	*tx_data = &tx_mbuf[tx_ptr];
+	tx_ptr = (tx_ptr + 1) % TX_RING_SIZE;
+
+	release(&e1000_tx_lock);
+}
+
+void
+e1000_tx(struct mbuf* tx_data)
+{
+	acquire(&e1000_tx_lock);
+
+	tx_ring[*tdt].addr = (uint64)(tx_data->head);
+	tx_ring[*tdt].length = tx_data->len;
+	tx_ring[*tdt].cmd = TX_DESC_CMD_EOP | TX_DESC_CMD_IFCS | TX_DESC_CMD_RS;
+	tx_ring[*tdt].cso = 0;
+	tx_ring[*tdt].css = 0;
+	tx_ring[*tdt].special = 0;
+	
+	*tdt = (*tdt + 1) % TX_RING_SIZE;
+	release(&e1000_tx_lock);
+}
+
+void
+e1000_rx_intr()
+{
+
 }

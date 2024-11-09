@@ -7,6 +7,7 @@
 #define E1000_CTRL             (0x00000/4)  /* Device Control Register - RW */
 #define E1000_ICR              (0x000C0/4)  /* Interrupt Cause Read - R */
 #define E1000_IMS              (0x000D0/4)  /* Interrupt Mask Set - RW */
+#define E1000_IMC              (0x000D4/4)  /* Interrupt Mask Clear - W */
 #define E1000_RCTL             (0x00100/4)  /* RX Control - RW */
 #define E1000_TCTL             (0x00400/4)  /* TX Control - RW */
 #define E1000_TIPG             (0x00410/4)  /* TX Inter-packet gap -RW */
@@ -29,6 +30,23 @@
 #define E1000_CTRL_ASDE 0x00000020 // Auto-Speed Detection Enable
 #define E1000_CTRL_SLU  0x00000040 // Set Link Up
 #define E1000_CTRL_RST  0x04000000 // Device Reset
+
+// E1000 Interrupt Bits
+#define E1000_INT_TXDW    0x00000001 // Transmit Descriptor Written Back
+#define E1000_INT_TXQE    0x00000002 // Transmit Queue Empty
+#define E1000_INT_LSC     0x00000004 // Link Status Change
+#define E1000_INT_RXSEQ   0x00000008 // Receive Sequence Error
+#define E1000_INT_RXDMT0  0x00000010 // Receive Minimum Threshold Hit
+#define E1000_INT_RXO     0x00000040 // Receiver FIFO Overrun
+#define E1000_INT_RXT0    0x00000080 // Receiver Timer Interrupt
+#define E1000_INT_MDAC    0x00000200 // MDI/O Access Complete Register
+#define E1000_INT_RXCFG   0x00000400 // Receiving /C/ Ordered Sets
+#define E1000_INT_PHYINT  0x00001000 // PHY Interrupt
+#define E1000_INT_GPI0    0x00002000 // General Purpose Interrupt 0
+#define E1000_INT_GPI1    0x00004000 // General Purpose Interrupt 1
+#define E1000_INT_TXD_LOW 0x00008000 // Transmit Descriptor Low Threshold Hit
+#define E1000_INT_SRPD    0x00010000 // Small Receive Packet Detect
+
 
 // E1000 Transmit Control Register
 #define E1000_TCTL_EN         0x00000002 // Transmit Enable
@@ -64,8 +82,7 @@ struct __attribute__((packed)) tx_desc {
 	uint16   length;      // Length
 	uint8       cso;      // Checksum offset
 	uint8       cmd;      // Command
-	uint8    status : 4;  // Status
-	uint8 reserved0 : 4;  // Reserved, write to 0
+	uint8    status;      // Status
 	uint8       css;      // Checksum Start
 	uint16  special;      // Special
 };
@@ -73,32 +90,8 @@ struct __attribute__((packed)) tx_desc {
 // E1000 Receive Control Register
 #define E1000_RCTL_EN    0x00000002 // Receiver Enable
 #define E1000_RCTL_BAM   0x00008000 // Broadcast Accept Mode
+#define E1000_BSIZE_2048 0x00000000 // Receive Buffer Size
 #define E1000_RCTL_SECRC 0x04000000 // Stript Ethernet CRC from incoming packets
-struct __attribute__((packed)) e1000_rctl {
-	uint8 reserved0 : 1; // Reserved, write to 0
-	uint8        en : 1; // Receiver Enable
-	uint8       sbp : 1; // Store Bad Packets
-	uint8       upe : 1; // Unicast Promiscuous Enabled
-	uint8       mpe : 1; // Multicast Promiscuous Enabled
-	uint8       lpe : 1; // Long Packet Reception Enable
-	uint8       lbm : 2; // Loopback Mode
-	uint8     rdmts : 2; // Receive Descriptor Minimum Threshold Size
-	uint8 reserved1 : 2; // Reserves, write to 0
-	uint8        mo : 2; // Multicast Offset
-	uint8 reserved2 : 1; // Reserved, write to 0
-	uint8       bam : 1; // Broadcast Accept Mode
-	uint8     bsize : 2; // Receive Buffer Size
-	uint8       vfe : 1; // VLAN Filter Enable
-	uint8     cfien : 1; // Canonical Form Indicator Enable
-	uint8       cfi : 1; // Canonical Form Indicator bit value
-	uint8 reserved3 : 1; // Reserved, wrte to 0
-	uint8       dpf : 1; // Discard Pause Frames
-	uint8      pcmf : 1; // Pause MAC Control Frames
-	uint8 reserved4 : 1; // Reserved, write to 0
-	uint8      bsex : 1; // Buffer Size Extension
-	uint8     secrc : 1; // Strip Ethernet CRC from incoming packet
-	uint8 reserved5 : 5; // Reserved, write to 0
-};
 
 // Receive Descriptor
 #define RX_DESC_STATUS_PIF   0x80
