@@ -26,7 +26,9 @@ swap16(uint16 val)
 void
 net_stack_init()
 {
-	e1000_intr_en(0); // Disable Interrupts
+	e1000_intr_en(
+		E1000_INT_RXT0
+	);
 	if(get_mac_addr(host_mac)) {
 		panic("Mac address not initialized");
 	}

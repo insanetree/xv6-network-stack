@@ -36,6 +36,10 @@
 // PCIe controller
 #define PCIE_ECAM_BASE 0x30000000L
 #define PCIE_ECAM_SIZE 0x10000000L
+#define PCIE_INTA_IRQ 32
+#define PCIE_INTB_IRQ 33
+#define PCIE_INTC_IRQ 34
+#define PCIE_INTD_IRQ 35
 
 // e1000
 #define E1000_BASE 0x40000000
