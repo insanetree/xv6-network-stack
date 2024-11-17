@@ -19,10 +19,17 @@ pcie_init() {
 			dev++;
 			continue;
 		}
-		printf("Vendor: %x, Device: %x\n", dev->t0.vendor_id, dev->t0.device_id);
+		printf(
+			"[%ld:%ld:%ld] Vendor: %x, Device: %x\n", 
+			PCIE_BUS((uint64)dev),
+			PCIE_DEVICE((uint64)dev),
+			PCIE_FUNC((uint64)dev),
+			dev->t0.vendor_id,
+			dev->t0.device_id
+			);
 		if(dev->t0.vendor_id == 0x8086 && dev->t0.device_id == 0x100e) {
 			e1000_init(dev);
 		}
-		dev = (void*)dev + 4096;
+		dev = (void*)dev + PCIE_CONFIG_SPACE_SIZE;
 	}
 }

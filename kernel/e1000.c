@@ -11,6 +11,8 @@
 #include "e1000.h"
 #include "net.h"
 
+uint32 e1000_irq = 0;
+
 struct spinlock e1000_lock;
 
 static volatile uint32 *regs = 0;
@@ -51,6 +53,10 @@ static volatile uint64 *ra = 0;
 void e1000_init(volatile union pcie_config_hdr *hdr)
 {
 	printf("Configuring e1000 network card\n");
+
+	if(hdr->t0.intr_pin) {
+		e1000_irq = PCIE_INTA_IRQ + (PCIE_DEVICE((uint64)hdr) & 3 /* mod 4*/) + hdr->t0.intr_pin - 1;
+	}
 
 	initlock(&e1000_lock, "e1000_spinlock");
 	initlock(&e1000_tx_lock, "e1000_transmit_spinlock");
@@ -177,7 +183,7 @@ e1000_get_tx_buf(struct mbuf** tx_data)
 void
 e1000_tx(struct mbuf* tx_data)
 {
-	acquire(&e1000_tx_lock);
+	acquire(&e1000_lock);
 
 	tx_ring[*tdt].addr = (uint64)(tx_data->head);
 	tx_ring[*tdt].length = tx_data->len;
@@ -187,11 +193,27 @@ e1000_tx(struct mbuf* tx_data)
 	tx_ring[*tdt].special = 0;
 	
 	*tdt = (*tdt + 1) % TX_RING_SIZE;
-	release(&e1000_tx_lock);
+	release(&e1000_lock);
 }
 
 void
-e1000_rx_intr()
+e1000_intr()
+{
+	acquire(&e1000_lock);
+	uint32 icr_local = *icr;
+	while (icr_local)
+	{
+		if(icr_local & E1000_INT_RXT0) {
+			icr_local &= ~E1000_INT_RXT0;
+		}
+	}
+	
+	
+	release(&e1000_lock);
+}
+
+void
+e1000_rx()
 {
 
 }

@@ -28,6 +28,7 @@ void            consputc(int);
 // e1000.c
 void            e1000_get_tx_buf(struct mbuf**);
 void            e1000_init(volatile union pcie_config_hdr*);
+void            e1000_intr(void);
 void            e1000_intr_en(uint32);
 void            e1000_tx(struct mbuf*);
 int             get_mac_addr(uint8 dest[]);

@@ -1,6 +1,11 @@
 #ifndef _PCI_H_
 #define _PCI_H
 
+#define PCIE_CONFIG_SPACE_SIZE 4096
+#define PCIE_BUS(addr) ((addr>>20) & 0xff)
+#define PCIE_DEVICE(addr) ((addr>>15) & 0x1f)
+#define PCIE_FUNC(addr) ((addr>>12) & 0x04)
+
 union __attribute__((packed)) pcie_config_hdr {
 	struct __attribute__((packed)) type0 {
 		uint32 vendor_id : 16;

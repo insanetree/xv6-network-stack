@@ -32,7 +32,7 @@
 #define E1000_CTRL_RST  0x04000000 // Device Reset
 
 // E1000 Interrupt Bits
-#define E1000_INT_TXDW    0x00000001 // Transmit Descriptor Written Back
+#define E1000_INT_TXDW    0x00000001 /* Transmit Descriptor Written Back */
 #define E1000_INT_TXQE    0x00000002 // Transmit Queue Empty
 #define E1000_INT_LSC     0x00000004 // Link Status Change
 #define E1000_INT_RXSEQ   0x00000008 // Receive Sequence Error
@@ -94,13 +94,13 @@ struct __attribute__((packed)) tx_desc {
 #define E1000_RCTL_SECRC 0x04000000 // Stript Ethernet CRC from incoming packets
 
 // Receive Descriptor
-#define RX_DESC_STATUS_PIF   0x80
-#define RX_DESC_STATUS_IPCS  0x40
-#define RX_DESC_STATUS_TCPCS 0x20
-#define RX_DESC_STATUS_VP    0x08
-#define RX_DESC_STATUS_IXSM  0x04
-#define RX_DESC_STATUS_EOP   0x02
-#define RX_DESC_STATUS_DD    0x01
+#define RX_DESC_STATUS_PIF   0x80 // Passed in-exact filter
+#define RX_DESC_STATUS_IPCS  0x40 // IP Checksum Calculated on Packet
+#define RX_DESC_STATUS_TCPCS 0x20 // TCP Checksum Calculated on Packet
+#define RX_DESC_STATUS_VP    0x08 // Packet is 802.1Q
+#define RX_DESC_STATUS_IXSM  0x04 // Ignore Checksum Indication
+#define RX_DESC_STATUS_EOP   0x02 // End of Packet
+#define RX_DESC_STATUS_DD    0x01 // Descriptor Done
 struct __attribute__((packed)) rx_desc {
 	uint64     addr;
 	uint16   length;
