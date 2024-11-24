@@ -68,6 +68,8 @@ void            itrunc(struct inode*);
 // net.c
 void            net_stack_init();
 void            arp_tx(uint32);
+void            arp_rx(struct mbuf*);
+void            eth_rx(struct mbuf*);
 
 // ramdisk.c
 void            ramdiskinit(void);

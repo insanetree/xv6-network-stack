@@ -22,6 +22,16 @@ swap16(uint16 val)
 	return ((val & 0xff) << 8) | (val >> 8);
 }
 
+static inline uint32
+swap32(uint32 val)
+{
+	return (
+		((val & 0xff000000ul) >> 24) |
+		((val & 0x00ff0000ul) >>  8) |
+		((val & 0x0000ff00ul) <<  8) |
+		((val & 0x000000fful) << 24)
+	);
+}
 
 void
 net_stack_init()
@@ -54,7 +64,7 @@ eth_tx(void* in, uint16 len, uint16 ethertype)
 }
 
 void
-ipv4_tx()
+ipv4_tx(void* in, uint32 dest, uint16 len)
 {
 
 }
@@ -86,4 +96,43 @@ arp_tx(uint32 ip)
 	memmove(tpa, nh_ip, IPV4_ALEN);
 
 	eth_tx(buff, size, ETH_P_ARP);
+}
+
+void
+ipv4_rx(struct mbuf* buff)
+{
+
+}
+
+void
+arp_rx(struct mbuf* buff)
+{
+	struct arp_hdr* hdr = (struct arp_hdr*)(buff->head + ETH_HLEN);
+	hdr->hwtype = swap16(hdr->hwtype);
+	hdr->ptype = swap16(hdr->ptype);
+	hdr->opcode = swap16(hdr->opcode);
+	if(hdr->opcode != ARP_OP_REPLY) {
+		return;
+	}
+	if(strncmp((void*)nh_ip, (void*)hdr + ARP_HLEN + hdr->hwalen, hdr->palen) == 0) {
+		memmove((void*)nh_mac, (void*)hdr + ARP_HLEN, hdr->hwalen);
+		printf("NIGGER\n");
+	}	
+}
+
+void
+eth_rx(struct mbuf* buff)
+{
+	struct eth_hdr* hdr = (struct eth_hdr*)(buff->head);
+	hdr->ethertype = swap16(hdr->ethertype);
+	switch(hdr->ethertype) {
+	case ETH_P_ARP:
+		arp_rx(buff);
+		break;
+	case ETH_P_IPV4:
+		ipv4_rx(buff);
+		break;
+	default:
+		printf("Unrecognized ethertype %x\n", hdr->ethertype);
+	}
 }

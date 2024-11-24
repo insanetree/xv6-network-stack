@@ -196,6 +196,8 @@ e1000_tx(struct mbuf* tx_data)
 	release(&e1000_lock);
 }
 
+static void e1000_intr_handle_rxt0(void);
+
 void
 e1000_intr()
 {
@@ -204,12 +206,28 @@ e1000_intr()
 	while (icr_local)
 	{
 		if(icr_local & E1000_INT_RXT0) {
+			e1000_intr_handle_rxt0();
 			icr_local &= ~E1000_INT_RXT0;
 		}
 	}
 	
 	
 	release(&e1000_lock);
+}
+
+static void
+e1000_intr_handle_rxt0()
+{
+	uint32 i = *rdt;
+	while((i + 1) % RX_RING_SIZE != *rdh) {
+		i = (i + 1) % RX_RING_SIZE;
+		rx_mbuf[i].head = rx_mbuf[i].buffer;
+		rx_mbuf[i].len = rx_ring[i].length;
+		eth_rx(&rx_mbuf[i]);
+		memset(&rx_ring[i], 0, sizeof(struct rx_desc));
+		rx_ring[i].addr = (uint64)(rx_mbuf[i].head);
+	}	
+	*rdt = i;
 }
 
 void
