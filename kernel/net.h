@@ -1,9 +1,15 @@
 #define MBUF_SIZE 2048
 
+/**
+ * Memory buffer for net stack
+ */
+enum mbuf_state {MBUF_FREE = 0, MBUF_TAKEN};
 struct mbuf {
+	unsigned char buffer[MBUF_SIZE];
 	unsigned char*             head;
 	unsigned int                len;
-	unsigned char buffer[MBUF_SIZE];
+	enum mbuf_state           state;
+	struct mbuf*               next;
 };
 
 #define ETH_ALEN        6

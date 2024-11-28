@@ -33,11 +33,35 @@ swap32(uint32 val)
 	);
 }
 
+static inline void*
+mbufgrow(struct mbuf* mbuf, uint16 len)
+{
+	if(len > MBUF_SIZE || mbuf->len + len > MBUF_SIZE) {
+		panic("mbuf grow");
+	}
+	mbuf->len += len;
+	mbuf->head -= len;
+	return mbuf->head;
+}
+
+static inline void*
+mbuftrim(struct mbuf* mbuf, uint16 len)
+{
+	if(len > MBUF_SIZE || mbuf->len < len) {
+		panic("mbuf trim");
+	}
+	mbuf->len -= len;
+	mbuf->head += len;
+	return mbuf->head;
+}
+
 void
 net_stack_init()
 {
 	e1000_intr_en(
-		E1000_INT_RXT0
+		E1000_INT_RXT0 |
+		E1000_INT_RXDMT0 |
+		E1000_INT_RXO
 	);
 	if(get_mac_addr(host_mac)) {
 		panic("Mac address not initialized");
@@ -48,18 +72,12 @@ net_stack_init()
 }
 
 void
-eth_tx(void* in, uint16 len, uint16 ethertype)
+eth_tx(struct mbuf* tx_buf, uint16 ethertype)
 {
-	struct eth_hdr hdr;
-	memmove(hdr.dst, nh_mac, ETH_ALEN);
-	memmove(hdr.src, host_mac, ETH_ALEN);
-	hdr.ethertype = swap16(ethertype);
-	struct mbuf* tx_buf;
-	e1000_get_tx_buf(&tx_buf);
-	tx_buf->len = len + ETH_HLEN;
-	tx_buf->head = tx_buf->buffer;
-	memmove(tx_buf->buffer, &hdr, ETH_HLEN);
-	memmove(tx_buf->buffer + ETH_HLEN, in, len);
+	struct eth_hdr* hdr = mbufgrow(tx_buf, ETH_HLEN);
+	memmove(hdr->dst, nh_mac, ETH_ALEN);
+	memmove(hdr->src, host_mac, ETH_ALEN);
+	hdr->ethertype = swap16(ethertype);
 	e1000_tx(tx_buf);
 }
 
@@ -72,30 +90,19 @@ ipv4_tx(void* in, uint32 dest, uint16 len)
 void
 arp_tx(uint32 ip)
 {
-	static const uint16 size = ARP_HLEN + 2 * (ETH_ALEN + IPV4_ALEN);
-	uint8 buff[size];
-
-	uint8* arp_hdr_ptr = &buff[0];
-	uint8* sha = &arp_hdr_ptr[ARP_HLEN];
-	uint8* spa = &sha[ETH_ALEN];
-	uint8* tha = &spa[IPV4_ALEN];
-	uint8* tpa = &tha[ETH_ALEN];
-
-	memset(buff, 0, size);
-	struct arp_hdr arp;
-	arp.hwtype = swap16(ARP_HWTYPE_ETHERNET);
-	arp.hwalen = ETH_ALEN;
-	arp.ptype = swap16(ARP_PTYPE_IPV4);
-	arp.palen = IPV4_ALEN;
-	arp.opcode = swap16(ARP_OP_REQUEST);
-
-	memmove(arp_hdr_ptr, &arp, ARP_HLEN);
-	memmove(sha, host_mac, ETH_ALEN);
-	memmove(spa, host_ip, IPV4_ALEN);
-	// tha is 0
-	memmove(tpa, nh_ip, IPV4_ALEN);
-
-	eth_tx(buff, size, ETH_P_ARP);
+	struct mbuf* tx_buf;
+	e1000_get_tx_buf(&tx_buf);
+	memmove(mbufgrow(tx_buf, IPV4_ALEN), nh_ip, IPV4_ALEN);
+	memmove(mbufgrow(tx_buf, ETH_ALEN), nh_mac, ETH_ALEN);
+	memmove(mbufgrow(tx_buf, IPV4_ALEN), host_ip, IPV4_ALEN);
+	memmove(mbufgrow(tx_buf, ETH_ALEN), host_mac, ETH_ALEN);
+	struct arp_hdr* hdr = mbufgrow(tx_buf, ARP_HLEN);
+	hdr->hwtype = swap16(ARP_HWTYPE_ETHERNET);
+	hdr->ptype = swap16(ARP_PTYPE_IPV4);
+	hdr->hwalen = ETH_ALEN;
+	hdr->palen = IPV4_ALEN;
+	hdr->opcode = swap16(ARP_OP_REQUEST);
+	eth_tx(tx_buf, ETH_P_ARP);
 }
 
 void
@@ -107,30 +114,30 @@ ipv4_rx(struct mbuf* buff)
 void
 arp_rx(struct mbuf* buff)
 {
-	struct arp_hdr* hdr = (struct arp_hdr*)(buff->head + ETH_HLEN);
+	struct arp_hdr* hdr = (struct arp_hdr*)(buff->head);
 	hdr->hwtype = swap16(hdr->hwtype);
 	hdr->ptype = swap16(hdr->ptype);
 	hdr->opcode = swap16(hdr->opcode);
-	if(hdr->opcode != ARP_OP_REPLY) {
-		return;
+	if(hdr->opcode == ARP_OP_REPLY) {
+		if(strncmp((void*)nh_ip, (void*)hdr + ARP_HLEN + hdr->hwalen, hdr->palen) == 0) {
+			memmove((void*)nh_mac, (void*)hdr + ARP_HLEN, hdr->hwalen);
+		}	
 	}
-	if(strncmp((void*)nh_ip, (void*)hdr + ARP_HLEN + hdr->hwalen, hdr->palen) == 0) {
-		memmove((void*)nh_mac, (void*)hdr + ARP_HLEN, hdr->hwalen);
-		printf("NIGGER\n");
-	}	
+	buff->state = MBUF_FREE;
 }
 
 void
-eth_rx(struct mbuf* buff)
+eth_rx(struct mbuf* rx_buf)
 {
-	struct eth_hdr* hdr = (struct eth_hdr*)(buff->head);
+	struct eth_hdr* hdr = (struct eth_hdr*)(rx_buf->head);
+	mbuftrim(rx_buf, ETH_HLEN);
 	hdr->ethertype = swap16(hdr->ethertype);
 	switch(hdr->ethertype) {
 	case ETH_P_ARP:
-		arp_rx(buff);
+		arp_rx(rx_buf);
 		break;
 	case ETH_P_IPV4:
-		ipv4_rx(buff);
+		ipv4_rx(rx_buf);
 		break;
 	default:
 		printf("Unrecognized ethertype %x\n", hdr->ethertype);
