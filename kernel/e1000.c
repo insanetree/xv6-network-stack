@@ -54,6 +54,14 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 {
 	printf("Configuring e1000 network card\n");
 
+	for(int i = 0 ; i < RX_RING_SIZE ; i++) {
+		assert((uint64)&rx_mbuf[i] == (uint64)(rx_mbuf[i].buffer));
+	}
+
+	for(int i = 0 ; i < TX_RING_SIZE ; i++) {
+		assert((uint64)&tx_mbuf[i] == (uint64)(tx_mbuf[i].buffer));
+	}
+
 	if(hdr->t0.intr_pin) {
 		e1000_irq = PCIE_INTA_IRQ + (PCIE_DEVICE((uint64)hdr) & 3 /* mod 4*/) + hdr->t0.intr_pin - 1;
 	}
