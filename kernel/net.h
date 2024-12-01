@@ -12,6 +12,11 @@ struct mbuf {
 	struct mbuf*               next;
 };
 
+struct mbufq {
+	struct mbuf* head;
+	struct mbuf* tail;
+};
+
 #define ETH_ALEN        6
 #define ETH_DATA_LEN 1500
 #define ETH_HLEN       14
@@ -56,4 +61,25 @@ struct __attribute__((packed)) arp_hdr {
 	uint16 opcode; // Operation
 };
 
-#define IPV4_ALEN 4
+#define IPV4_ALEN  4
+#define IPV4_HLEN 20
+
+#define IPPROTO_IPV4 4
+
+/* RFC 790 - Assigned Numbers*/
+
+#define IPPROTO_ICMP  1
+#define IPPROTO_TCP   6
+#define IPPROTO_UDP  17
+struct __attribute__((packed)) ipv4_hdr {
+	uint8          ver_ihl;
+	uint8              tos;
+	uint16          length;
+	uint16  identification;
+	uint16        flg_foff;
+	uint8              ttl;
+	uint8         protocol;
+	uint16 header_checksum;
+	uint32             src;
+	uint32            dest;
+};

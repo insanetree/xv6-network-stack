@@ -70,6 +70,7 @@ void            net_stack_init();
 void            arp_tx(uint32);
 void            arp_rx(struct mbuf*);
 void            eth_rx(struct mbuf*);
+void            ipv4_tx(struct mbuf*, uint16, uint8, uint32);
 
 // ramdisk.c
 void            ramdiskinit(void);

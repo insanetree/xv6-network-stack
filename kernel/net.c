@@ -81,10 +81,57 @@ eth_tx(struct mbuf* tx_buf, uint16 ethertype)
 	e1000_tx(tx_buf);
 }
 
-void
-ipv4_tx(void* in, uint32 dest, uint16 len)
+// This code is lifted from FreeBSD's ping.c, and is copyright by the Regents
+// of the University of California.
+static unsigned short
+in_cksum(const unsigned char *addr, int len)
 {
+  int nleft = len;
+  const unsigned short *w = (const unsigned short *)addr;
+  unsigned int sum = 0;
+  unsigned short answer = 0;
 
+  /*
+   * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+   * sequential 16 bit words to it, and at the end, fold back all the
+   * carry bits from the top 16 bits into the lower 16 bits.
+   */
+  while (nleft > 1)  {
+    sum += *w++;
+    nleft -= 2;
+  }
+
+  /* mop up an odd byte, if necessary */
+  if (nleft == 1) {
+    *(unsigned char *)(&answer) = *(const unsigned char *)w;
+    sum += answer;
+  }
+
+  /* add back carry outs from top 16 bits to low 16 bits */
+  sum = (sum & 0xffff) + (sum >> 16);
+  sum += (sum >> 16);
+  /* guaranteed now that the lower 16 bits of sum are correct */
+
+  answer = ~sum; /* truncate to 16 bits */
+  return answer;
+}
+
+void
+ipv4_tx(struct mbuf* tx_buf, uint16 length, uint8 protocol, uint32 dest)
+{
+	struct ipv4_hdr* hdr = mbufgrow(tx_buf, IPV4_HLEN);
+	hdr->ver_ihl = (IPPROTO_IPV4 << 4) | (IPV4_HLEN >> 2);
+	hdr->tos = 0;
+	hdr->length = swap16(IPV4_HLEN + length);
+	hdr->identification = swap16(0);
+	hdr->flg_foff = swap16((2 << 13) | 0); // Don't Fragment
+	hdr->ttl = 255u;
+	hdr->protocol = protocol;
+	hdr->header_checksum = 0; // Calculate it later
+	memmove(&(hdr->src), host_ip, IPV4_ALEN);
+	hdr->dest = swap32(dest);
+	hdr->header_checksum = in_cksum((uint8*)hdr, IPV4_HLEN);
+	eth_tx(tx_buf, ETH_P_IPV4);
 }
 
 void
@@ -106,8 +153,19 @@ arp_tx(uint32 ip)
 }
 
 void
-ipv4_rx(struct mbuf* buff)
+ipv4_rx(struct mbuf* rx_buf)
 {
+	struct ipv4_hdr* hdr = (struct ipv4_hdr*)(rx_buf->head);
+	mbuftrim(rx_buf, IPV4_HLEN);
+
+	if(in_cksum((uint8*)hdr, (hdr->ver_ihl & 0x0f) << 2)) {
+		goto fail;
+	}
+
+	return;
+fail:
+	printf("Packet dropped\n");
+	return;
 
 }
 
