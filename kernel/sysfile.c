@@ -503,3 +503,15 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_sock_open()
+{
+  return 0;
+}
+
+uint64
+sys_sock_close()
+{
+  return 0;
+}

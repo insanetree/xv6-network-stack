@@ -131,6 +131,9 @@ void            procdump(void);
 // swtch.S
 void            swtch(struct context*, struct context*);
 
+// sock.c
+void            ksock_init();
+
 // spinlock.c
 void            acquire(struct spinlock*);
 int             holding(struct spinlock*);
