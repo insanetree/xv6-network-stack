@@ -41,3 +41,7 @@ void *memcpy(void *, const void *, uint);
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+// sock.c
+int sock_open();
+int sock_close(int);
