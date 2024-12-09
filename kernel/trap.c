@@ -176,6 +176,7 @@ clockintr()
   w_stimecmp(r_time() + 1000000);
 }
 
+extern uint32 e1000_irq;
 // check if it's an external interrupt or software interrupt,
 // and handle it.
 // returns 2 if timer interrupt,

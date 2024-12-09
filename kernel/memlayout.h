@@ -44,7 +44,6 @@
 // e1000
 #define E1000_BASE 0x40000000
 #define E1000_SIZE 0x020000
-extern uint32 e1000_irq;
 
 // the kernel expects there to be RAM
 // for use by the kernel and user pages
