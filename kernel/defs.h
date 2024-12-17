@@ -10,6 +10,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+struct semaphore;
 struct mbuf;
 
 // bio.c
@@ -130,6 +131,11 @@ void            procdump(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
+
+// semaphore.c
+void            sem_init(struct semaphore*, int);
+void            sem_wait(struct semaphore*);
+void            sem_post(struct semaphore*);
 
 // sock.c
 void            ksock_init();
