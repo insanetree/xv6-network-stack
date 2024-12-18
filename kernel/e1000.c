@@ -218,17 +218,50 @@ e1000_intr()
 	uint32 icr_local = *icr;
 	while (icr_local)
 	{
-		if(icr_local & E1000_INT_RXDMT0) {
-			e1000_intr_handle_rxdmt0();
-			icr_local &= ~E1000_INT_RXDMT0;
+		if (icr_local & E1000_INT_TXDW) {
+		    icr_local &= ~E1000_INT_TXDW;
 		}
-		if(icr_local & E1000_INT_RXO) {
-			e1000_intr_handle_rxo();
-			icr_local &= ~E1000_INT_RXO;
+		if (icr_local & E1000_INT_TXQE) {
+		    icr_local &= ~E1000_INT_TXQE;
 		}
-		if(icr_local & E1000_INT_RXT0) {
-			e1000_intr_handle_rxt0();
-			icr_local &= ~E1000_INT_RXT0;
+		if (icr_local & E1000_INT_LSC) {
+		    icr_local &= ~E1000_INT_LSC;
+		}
+		if (icr_local & E1000_INT_RXSEQ) {
+		    icr_local &= ~E1000_INT_RXSEQ;
+		}
+		if (icr_local & E1000_INT_RXDMT0) {
+		    e1000_intr_handle_rxdmt0();
+		    icr_local &= ~E1000_INT_RXDMT0;
+		}
+		if (icr_local & E1000_INT_RXO) {
+		    e1000_intr_handle_rxo();
+		    icr_local &= ~E1000_INT_RXO;
+		}
+		if (icr_local & E1000_INT_RXT0) {
+		    e1000_intr_handle_rxt0();
+		    icr_local &= ~E1000_INT_RXT0;
+		}
+		if (icr_local & E1000_INT_MDAC) {
+		    icr_local &= ~E1000_INT_MDAC;
+		}
+		if (icr_local & E1000_INT_RXCFG) {
+		    icr_local &= ~E1000_INT_RXCFG;
+		}
+		if (icr_local & E1000_INT_PHYINT) {
+		    icr_local &= ~E1000_INT_PHYINT;
+		}
+		if (icr_local & E1000_INT_GPI0) {
+		    icr_local &= ~E1000_INT_GPI0;
+		}
+		if (icr_local & E1000_INT_GPI1) {
+		    icr_local &= ~E1000_INT_GPI1;
+		}
+		if (icr_local & E1000_INT_TXD_LOW) {
+		    icr_local &= ~E1000_INT_TXD_LOW;
+		}
+		if (icr_local & E1000_INT_SRPD) {
+		    icr_local &= ~E1000_INT_SRPD;
 		}
 	}
 	
@@ -243,7 +276,6 @@ e1000_intr_handle_rxt0()
 	while(rx_ptr < *rdh) {
 		struct rx_desc* desc = &rx_ring[rx_ptr];
 		struct mbuf* mbuf = (struct mbuf*)desc->addr;
-		mbuf->state = MBUF_TAKEN;
 		mbuf->len = desc->length;
 		mbuf->head = mbuf->buffer;
 		eth_rx(mbuf);

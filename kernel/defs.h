@@ -71,6 +71,7 @@ void            net_stack_init();
 void            arp_tx(uint32);
 void            arp_rx(struct mbuf*);
 void            eth_rx(struct mbuf*);
+void            icmp_tx(uint16, uint16, uint32);
 void            ipv4_tx(struct mbuf*, uint16, uint8, uint32);
 
 // ramdisk.c
@@ -139,6 +140,7 @@ void            sem_post(struct semaphore*);
 
 // sock.c
 void            ksock_init();
+int             raw_sock_recv(struct mbuf*, uint16);
 
 // spinlock.c
 void            acquire(struct spinlock*);

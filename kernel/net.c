@@ -153,26 +153,97 @@ arp_tx(uint32 ip)
 }
 
 void
+icmp_tx(uint16 id, uint16 sequence, uint32 dest)
+{
+	struct mbuf* tx_buf;
+	e1000_get_tx_buf(&tx_buf);
+	struct icmp_hdr* hdr = mbufgrow(tx_buf, sizeof(*hdr));
+	hdr->checksum = 0;
+	hdr->code = 0;
+	hdr->type = ICMP_ECHO;
+	hdr->un.echo.id = swap16(id);
+	hdr->un.echo.sequence = swap16(sequence);
+	hdr->checksum = in_cksum((uint8*)hdr, sizeof(*hdr));
+	ipv4_tx(tx_buf, sizeof(*hdr), IPPROTO_ICMP, dest);
+}
+
+void
+icmp_rx(struct mbuf* rx_buf)
+{
+	uint16 port = 0;
+	struct icmp_hdr* hdr = (struct icmp_hdr*)rx_buf->head;
+	if(rx_buf->len < sizeof(struct icmp_hdr)) {
+		goto fail;
+	}
+	if(in_cksum((uint8*)hdr, rx_buf->len)) {
+		goto fail;
+	}
+	switch(hdr->type) {
+	case ICMP_ECHO:
+	case ICMP_ECHOREPLY:
+		port = hdr->un.echo.id;
+		break;
+	default:
+		printf("Unimplemented ICMP: %d ", hdr->type);
+		goto fail;
+	}
+	if(raw_sock_recv(rx_buf, swap16(port))) {
+		printf("No open socket ");
+		goto fail;
+	}
+	return;
+fail:
+	printf("ICMP message malformed\n");
+	return;
+}
+
+void
 ipv4_rx(struct mbuf* rx_buf)
 {
 	struct ipv4_hdr* hdr = (struct ipv4_hdr*)(rx_buf->head);
+
+	if(rx_buf->len < sizeof(struct ipv4_hdr)) {
+		printf("Received buffer has no space\n");
+		goto fail;
+	}
+	if(rx_buf->len < swap16(hdr->length)) {
+		goto fail;
+	}
+	if(in_cksum((uint8*)hdr, (hdr->ver_ihl & 0x0f) << 2)) {
+		printf("Checksum fail\n");
+		goto fail;
+	}
+	if(memcmp(&hdr->dest, host_ip, IPV4_ALEN)) {
+		printf("Bad destination\n");
+		goto fail;
+	}
+
 	mbuftrim(rx_buf, IPV4_HLEN);
 
-	if(in_cksum((uint8*)hdr, (hdr->ver_ihl & 0x0f) << 2)) {
-		goto fail;
+	switch (hdr->protocol)
+	{
+	case IPPROTO_ICMP:
+		icmp_rx(rx_buf);
+		break;
+	case IPPROTO_TCP:
+	case IPPROTO_UDP:
+	default:
+		break;
 	}
 
 	return;
 fail:
 	printf("Packet dropped\n");
 	return;
-
 }
 
 void
-arp_rx(struct mbuf* buff)
+arp_rx(struct mbuf* rx_buf)
 {
-	struct arp_hdr* hdr = (struct arp_hdr*)(buff->head);
+	struct arp_hdr* hdr = (struct arp_hdr*)(rx_buf->head);
+	if(rx_buf->len < sizeof(struct arp_hdr)) {
+		goto fail;
+	}
 	hdr->hwtype = swap16(hdr->hwtype);
 	hdr->ptype = swap16(hdr->ptype);
 	hdr->opcode = swap16(hdr->opcode);
@@ -181,13 +252,19 @@ arp_rx(struct mbuf* buff)
 			memmove((void*)nh_mac, (void*)hdr + ARP_HLEN, hdr->hwalen);
 		}	
 	}
-	buff->state = MBUF_FREE;
+	return;
+fail:
+	printf("ARP message malformed\n");
+	return;
 }
 
 void
 eth_rx(struct mbuf* rx_buf)
 {
 	struct eth_hdr* hdr = (struct eth_hdr*)(rx_buf->head);
+	if(rx_buf->len < sizeof(struct eth_hdr)) {
+		goto fail;
+	}
 	mbuftrim(rx_buf, ETH_HLEN);
 	hdr->ethertype = swap16(hdr->ethertype);
 	switch(hdr->ethertype) {
@@ -199,5 +276,10 @@ eth_rx(struct mbuf* rx_buf)
 		break;
 	default:
 		printf("Unrecognized ethertype %x\n", hdr->ethertype);
+		goto fail;
 	}
+	return;
+fail:
+	printf("Frame dropped\n");
+	return;
 }
