@@ -43,5 +43,5 @@ void* malloc(uint);
 void free(void*);
 
 // sock.c
-int sock_open();
+int sock_open(int);
 int sock_close(int);

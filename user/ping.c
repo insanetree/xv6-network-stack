@@ -3,5 +3,6 @@
 
 int main()
 {
+    sock_open(0);
     return 0;
 }

@@ -507,6 +507,9 @@ sys_pipe(void)
 uint64
 sys_sock_open()
 {
+  int ret;
+  int port;
+  argint(0, &port);
   return 0;
 }
 

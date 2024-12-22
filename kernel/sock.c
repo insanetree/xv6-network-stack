@@ -40,6 +40,22 @@ ksock_init() {
 }
 
 int
+ksock_open(uint16 port, struct sock** sock)
+{
+	for(int i = 0 ; i < SOCK_ARR_LEN ; i++) {
+		if(sock_array[i].state == SOCK_OPEN) {
+			continue;
+		}
+		*sock = &sock_array[i];
+		(*sock)->state = SOCK_OPEN;
+		(*sock)->port = port ? port : 0xc000 | i;
+		(*sock)->type = SOCKET_RAW;
+		return 0;
+	}
+	return -1;
+}
+
+int
 sock_recv(struct mbuf* in_mbuf, enum sock_type type, uint16 port)
 {
 	for(int i = 0 ; i < SOCK_ARR_LEN ; i++) {
