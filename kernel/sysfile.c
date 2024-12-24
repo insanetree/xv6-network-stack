@@ -507,10 +507,36 @@ sys_pipe(void)
 uint64
 sys_sock_open()
 {
-  int ret;
+  int fd;
   int port;
+  struct sock* sock;
+  struct file* file;
   argint(0, &port);
-  return 0;
+
+  if(ksock_open(port, &sock)) {
+    goto close_sock;
+  }
+
+  file = filealloc();
+  if(!file) {
+    goto close_file;
+  }
+  file->type = FD_SOCK;
+  file->sock = sock;
+  file->readable = 1;
+  file->writable = 1;
+  
+  fd = fdalloc(file);
+  if(fd < 0) {
+    goto close_file;
+  }
+
+  return fd;
+close_file:
+  fileclose(file);
+close_sock:
+  ksock_close(sock);
+  return -1;
 }
 
 uint64

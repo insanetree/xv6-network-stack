@@ -80,7 +80,7 @@ fileclose(struct file *f)
     iput(ff.ip);
     end_op();
   } else if(ff.type == FD_SOCK) {
-    // TODO: implement sock close
+    ksock_close(ff.sock);
   }
 }
 

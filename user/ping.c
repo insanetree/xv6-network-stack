@@ -3,6 +3,7 @@
 
 int main()
 {
-    sock_open(0);
+	int sock = 0;
+    sock = sock_open(0);
     return 0;
 }

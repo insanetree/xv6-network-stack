@@ -55,6 +55,13 @@ ksock_open(uint16 port, struct sock** sock)
 	return -1;
 }
 
+void
+ksock_close(struct sock* sock)
+{
+	sock->state = SOCK_CLOSED;
+	// TODO empty queue
+}
+
 int
 sock_recv(struct mbuf* in_mbuf, enum sock_type type, uint16 port)
 {

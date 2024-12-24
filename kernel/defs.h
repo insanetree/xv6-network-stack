@@ -12,6 +12,7 @@ struct superblock;
 
 struct semaphore;
 struct mbuf;
+struct sock;
 
 // bio.c
 void            binit(void);
@@ -141,6 +142,8 @@ void            sem_post(struct semaphore*);
 // sock.c
 void            ksock_init();
 int             raw_sock_recv(struct mbuf*, uint16);
+int             ksock_open(uint16, struct sock**);
+void            ksock_close(struct sock*);
 
 // spinlock.c
 void            acquire(struct spinlock*);
