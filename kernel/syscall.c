@@ -131,7 +131,6 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 
 [SYS_sock_open] sys_sock_open,
-[SYS_sock_close] sys_sock_close,
 };
 
 void

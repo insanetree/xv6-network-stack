@@ -44,4 +44,3 @@ void free(void*);
 
 // sock.c
 int sock_open(uint16);
-int sock_close(int);

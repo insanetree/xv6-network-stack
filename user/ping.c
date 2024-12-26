@@ -5,5 +5,6 @@ int main()
 {
 	int sock = 0;
     sock = sock_open(0);
+    close(sock);
     return 0;
 }

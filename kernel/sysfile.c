@@ -539,8 +539,3 @@ close_sock:
   return -1;
 }
 
-uint64
-sys_sock_close()
-{
-  return 0;
-}
