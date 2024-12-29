@@ -8,7 +8,7 @@ int main()
     sock = sock_open(0);
     uint64 buff[2048>>3];
     
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 50; i++)
     {
         icmp_echo(sock, 0x0a000202, i);
         sock_recv(sock, buff);

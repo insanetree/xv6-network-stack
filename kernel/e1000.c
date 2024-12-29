@@ -39,7 +39,6 @@ static volatile uint32 *tdt = 0;
 #define RX_RING_SIZE 32
 struct spinlock e1000_rx_lock;
 static volatile uint32 rx_ptr = 0;
-static volatile uint32 rx_size = RX_RING_SIZE;
 struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
 struct mbuf rx_mbuf[RX_RING_SIZE];
 
@@ -273,7 +272,7 @@ static void
 e1000_intr_handle_rxt0()
 {
 	acquire(&e1000_rx_lock);
-	while(rx_ptr < *rdh) {
+	while(rx_ptr != *rdh) {
 		struct rx_desc* desc = &rx_ring[rx_ptr];
 		struct mbuf* mbuf = (struct mbuf*)desc->addr;
 		mbuf->len = desc->length;
@@ -287,7 +286,11 @@ e1000_intr_handle_rxt0()
 static void
 e1000_intr_handle_rxdmt0()
 {
-
+	acquire(&e1000_rx_lock);
+	while((*rdt + 1) % RX_RING_SIZE != *rdh) {
+		*rdt = (*rdt + 1) % RX_RING_SIZE;
+	}
+	release(&e1000_rx_lock);
 }
 
 static void
