@@ -59,7 +59,15 @@ void
 ksock_close(struct sock* sock)
 {
 	sock->state = SOCK_CLOSED;
-	// TODO empty queue
+	struct mbuf* curr = sock->queue.head;
+	struct mbuf* prev = 0;
+	while(curr) {
+		prev = curr;
+		curr = curr->next;
+		kfree(prev);
+	}
+	sock->queue.head = sock->queue.tail = 0;
+	sock->count.count = 0;
 }
 
 int
