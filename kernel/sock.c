@@ -63,7 +63,7 @@ ksock_close(struct sock* sock)
 }
 
 int
-sock_recv(struct mbuf* in_mbuf, enum sock_type type, uint16 port)
+ksock_recv(struct mbuf* in_mbuf, enum sock_type type, uint16 port)
 {
 	for(int i = 0 ; i < SOCK_ARR_LEN ; i++) {
 		if(sock_array[i].state == SOCK_CLOSED) {
@@ -96,5 +96,69 @@ sock_recv(struct mbuf* in_mbuf, enum sock_type type, uint16 port)
 
 int
 raw_sock_recv(struct mbuf* mbuf, uint16 port) {
-	return sock_recv(mbuf, SOCKET_RAW, port);
+	return ksock_recv(mbuf, SOCKET_RAW, port);
+}
+
+uint64
+sys_icmp_echo()
+{
+	int fd;
+	int dest;
+	int seq;
+	struct file* file;
+	struct sock* sock;
+	argint(1, &dest);
+	argint(2, &seq);
+	if(argfd(0, &fd, &file)) {
+		goto fail;
+	}
+	sock = file->sock;
+	if(!sock) {
+		goto fail;
+	}
+
+	icmp_tx(sock->port, seq, dest);
+
+	return 0;
+
+fail:
+	return -1;
+}
+
+uint64
+sys_sock_recv()
+{
+	int fd;
+	struct file* file;
+	struct sock* sock;
+	uint64 dest;
+	argaddr(1, &dest);
+	if(argfd(0, &fd, &file)) {
+		goto fail_fd;
+	}
+	sock = file->sock;
+	if(!sock) {
+		goto fail_fd;
+	}
+
+	sem_wait(&sock->count);
+	acquire(&sock->mutex);
+	if(copyout(myproc()->pagetable, dest, (char*)sock->queue.head->head, sock->queue.head->len)) {
+		goto fail_cpy;
+	}
+
+	struct mbuf* mbuf = sock->queue.head;
+	sock->queue.head = mbuf->next;
+	if(!sock->queue.head) {
+		sock->queue.head = sock->queue.tail = 0;
+	}
+	kfree(mbuf);
+
+	release(&sock->mutex);
+	return 0;
+
+fail_cpy:
+	release(&sock->mutex);
+fail_fd:
+	return -1;
 }

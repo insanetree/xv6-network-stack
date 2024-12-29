@@ -44,3 +44,7 @@ void free(void*);
 
 // sock.c
 int sock_open(uint16);
+
+// sysnet
+int icmp_echo(int, uint32, uint16);
+int sock_recv(int, void*);

@@ -22,3 +22,5 @@
 #define SYS_close  21
 
 #define SYS_sock_open  22
+#define SYS_icmp_echo  23
+#define SYS_sock_recv  24

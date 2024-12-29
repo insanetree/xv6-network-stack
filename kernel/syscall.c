@@ -103,7 +103,8 @@ extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 
 extern uint64 sys_sock_open(void);
-extern uint64 sys_sock_close(void);
+extern uint64 sys_icmp_echo(void);
+extern uint64 sys_sock_recv(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -131,6 +132,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 
 [SYS_sock_open] sys_sock_open,
+[SYS_icmp_echo] sys_icmp_echo,
+[SYS_sock_recv] sys_sock_recv,
 };
 
 void

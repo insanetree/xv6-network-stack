@@ -38,3 +38,5 @@ entry("sleep");
 entry("uptime");
 
 entry("sock_open");
+entry("icmp_echo");
+entry("sock_recv");

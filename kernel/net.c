@@ -182,6 +182,8 @@ icmp_rx(struct mbuf* rx_buf)
 	case ICMP_ECHO:
 	case ICMP_ECHOREPLY:
 		port = hdr->un.echo.id;
+		hdr->un.echo.id = swap16(hdr->un.echo.id);
+		hdr->un.echo.sequence = swap16(hdr->un.echo.sequence);
 		break;
 	default:
 		printf("Unimplemented ICMP: %d ", hdr->type);
