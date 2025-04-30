@@ -81,6 +81,7 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	ims = &regs[E1000_IMS];
 	imc = &regs[E1000_IMC];
 
+  // Disable all interrupts
 	e1000_intr_en(0);
 
 	// General Config
