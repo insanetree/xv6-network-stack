@@ -37,13 +37,11 @@ static volatile uint32 *tdh = 0;
 static volatile uint32 *tdt = 0;
 
 #define RX_RING_SIZE 32
-struct spinlock e1000_rx_lock;
 static volatile uint32 rx_ptr = 0;
 struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
 struct mbuf rx_mbuf[RX_RING_SIZE];
 
 #define TX_RING_SIZE 32
-struct spinlock e1000_tx_lock;
 static volatile uint32 tx_ptr = 0;
 static volatile uint32 tx_size = TX_RING_SIZE;
 struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
@@ -68,8 +66,6 @@ void e1000_init(volatile union pcie_config_hdr *hdr)
 	}
 
 	initlock(&e1000_lock, "e1000_spinlock");
-	initlock(&e1000_tx_lock, "e1000_transmit_spinlock");
-	initlock(&e1000_rx_lock, "e1000_receive_spinlock");
 	hdr->t0.cmd |= E1000_PCIE_CMD_IO_ENABLE |
 				   E1000_PCIE_CMD_MMIO_ENABLE |
 				   E1000_PCIE_CMD_BUS_MASTERING_ENABLE;
@@ -178,7 +174,7 @@ get_mac_addr(uint8 dest[])
 void
 e1000_get_tx_buf(struct mbuf** tx_data)
 {
-	acquire(&e1000_tx_lock);
+	acquire(&e1000_lock);
 
 	while(!(tx_ring[tx_ptr].status & TX_DESC_STATUS_DD)); // Busy wait for descriptor done
 	tx_ring[tx_ptr].status = 0; // Clear Status bits to reserve this descriptor
@@ -187,7 +183,7 @@ e1000_get_tx_buf(struct mbuf** tx_data)
 	(*tx_data)->head = (*tx_data)->buffer + MBUF_SIZE;
 	tx_ptr = (tx_ptr + 1) % TX_RING_SIZE;
 
-	release(&e1000_tx_lock);
+	release(&e1000_lock);
 }
 
 void
@@ -271,7 +267,6 @@ e1000_intr()
 static void
 e1000_intr_handle_rxt0()
 {
-	acquire(&e1000_rx_lock);
 	while(rx_ptr != *rdh) {
 		struct rx_desc* desc = &rx_ring[rx_ptr];
 		struct mbuf* mbuf = (struct mbuf*)desc->addr;
@@ -280,17 +275,14 @@ e1000_intr_handle_rxt0()
 		eth_rx(mbuf);
 		rx_ptr = (rx_ptr + 1) % RX_RING_SIZE;
 	}
-	release(&e1000_rx_lock);
 }
 
 static void
 e1000_intr_handle_rxdmt0()
 {
-	acquire(&e1000_rx_lock);
 	while((*rdt + 1) % RX_RING_SIZE != *rdh) {
 		*rdt = (*rdt + 1) % RX_RING_SIZE;
 	}
-	release(&e1000_rx_lock);
 }
 
 static void
